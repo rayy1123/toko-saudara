@@ -1,0 +1,327 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String           @id @default(uuid())
+  email        String           @unique
+  phone        String?
+  passwordHash String
+  role         String           @default("CUSTOMER") // CUSTOMER, ADMIN, COURIER
+  status       String           @default("ACTIVE")   // ACTIVE, SUSPENDED, DISABLED
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  profile      CustomerProfile?
+  addresses    Address[]
+  cart         Cart?
+  orders       Order[]
+  auditEvents  AuditEvent[]
+}
+
+model CustomerProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Address {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label         String   // e.g. "Rumah", "Kantor"
+  recipientName String
+  phone         String
+  addressLine   String
+  district      String
+  city          String
+  province      String
+  postalCode    String
+  latitude      Float?
+  longitude     Float?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  imageUrl  String?
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
+  products  Product[]
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id])
+  sku         String        @unique
+  name        String
+  slug        String        @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean       @default(true)
+  isFresh     Boolean       @default(false)
+  harvestInfo String?       // e.g. "Dipetik pagi ini dari Lembang"
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  units       ProductUnit[]
+}
+
+model ProductUnit {
+  id                    String                 @id @default(uuid())
+  productId             String
+  product               Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  unitName              String                 // e.g. "1 Kilogram", "500 Gram", "1 Ikat", "1 Butir"
+  unitCode              String                 // "kg", "g", "ikat", "pcs", "rak"
+  quantityValue         Float                  @default(1.0)
+  quantityUnit          String                 @default("kg")
+  price                 Float                  // Server authoritative price in IDR
+  costPrice             Float?
+  stockQuantity         Float                  @default(0.0)
+  lowStockThreshold     Float                  @default(5.0)
+  isActive              Boolean                @default(true)
+  priceHistories        PriceHistory[]
+  inventoryMovements    InventoryMovement[]
+  cartItems             CartItem[]
+  bundleItems           BundleItem[]
+  supplierPurchaseItems SupplierPurchaseItem[]
+  promotionItems        PromotionItem[]
+}
+
+model PriceHistory {
+  id            String      @id @default(uuid())
+  productUnitId String
+  productUnit   ProductUnit @relation(fields: [productUnitId], references: [id], onDelete: Cascade)
+  price         Float
+  validFrom     DateTime    @default(now())
+  validUntil    DateTime?
+  createdBy     String?
+  createdAt     DateTime    @default(now())
+}
+
+model InventoryMovement {
+  id            String      @id @default(uuid())
+  productUnitId String
+  productUnit   ProductUnit @relation(fields: [productUnitId], references: [id], onDelete: Cascade)
+  type          String      // PURCHASE, SALE, RESERVATION, RELEASE, ADJUSTMENT_IN, ADJUSTMENT_OUT, DAMAGE, RETURN
+  quantityDelta Float
+  referenceType String?     // e.g. "ORDER", "MANUAL_ADJUSTMENT"
+  referenceId   String?
+  note          String?
+  createdBy     String?
+  createdAt     DateTime    @default(now())
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id            String      @id @default(uuid())
+  cartId        String
+  cart          Cart        @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productUnitId String
+  productUnit   ProductUnit @relation(fields: [productUnitId], references: [id], onDelete: Cascade)
+  quantity      Float       @default(1.0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([cartId, productUnitId])
+}
+
+model Order {
+  id              String               @id @default(uuid())
+  orderNumber     String               @unique // e.g. "ORD-20261004-0001"
+  userId          String?
+  user            User?                @relation(fields: [userId], references: [id])
+  customerName    String?
+  customerPhone   String?
+  addressSnapshot String               // JSON snapshot of recipient address
+  subtotal        Float
+  discountTotal   Float                @default(0.0)
+  shippingFee     Float                @default(0.0)
+  grandTotal      Float
+  paymentStatus   String               @default("UNPAID") // UNPAID, PAID, FAILED, REFUNDED
+  orderStatus     String               @default("PENDING_PAYMENT") // PENDING_PAYMENT, PAID, PROCESSING, READY_FOR_PICKUP, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+  orderType       String               @default("ONLINE") // ONLINE, POS_OFFLINE
+  cashTendered    Float?
+  changeReturned  Float?
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  items           OrderItem[]
+  statusHistory   OrderStatusHistory[]
+  payment         Payment?
+  delivery        Delivery?
+}
+
+model OrderItem {
+  id                  String      @id @default(uuid())
+  orderId             String
+  order               Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId           String
+  productUnitId       String
+  productNameSnapshot String
+  unitNameSnapshot    String
+  unitPrice           Float
+  quantity            Float
+  subtotal            Float
+}
+
+model OrderStatusHistory {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus String?
+  toStatus   String
+  changedBy  String?
+  note       String?
+  createdAt  DateTime @default(now())
+}
+
+model Payment {
+  id                String    @id @default(uuid())
+  orderId           String    @unique
+  order             Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method            String    // COD, BANK_TRANSFER
+  status            String    @default("PENDING") // PENDING, COMPLETED, FAILED, REFUNDED
+  amount            Float
+  providerReference String?
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+}
+
+model Delivery {
+  id            String    @id @default(uuid())
+  orderId       String    @unique
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method        String    @default("KURIR_TOKO") // KURIR_TOKO, AMBIL_SENDIRI
+  status        String    @default("PENDING")    // PENDING, DISPATCHED, DELIVERED, RETURNED
+  scheduledDate String?   // "2026-10-05"
+  slotStart     String?   // "07:00"
+  slotEnd       String?   // "10:00"
+  courierId     String?
+  trackingNote  String?
+}
+
+model DeliveryArea {
+  id             String  @id @default(uuid())
+  name           String  // e.g. "Kecamatan Sukasari, Bandung"
+  shippingFee    Float   @default(10000.0)
+  minOrderAmount Float   @default(50000.0)
+  isActive       Boolean @default(true)
+}
+
+model Promotion {
+  id             String          @id @default(uuid())
+  name           String
+  code           String          @unique
+  type           String          // PERCENTAGE, FIXED
+  value          Float           // e.g. 10 (%) or 15000 (IDR)
+  minOrderAmount Float           @default(0.0)
+  maxDiscount    Float?
+  scope          String          @default("ALL") // ALL, SPECIFIC_ITEMS
+  startsAt       DateTime        @default(now())
+  endsAt         DateTime?
+  isActive       Boolean         @default(true)
+  items          PromotionItem[]
+}
+
+model PromotionItem {
+  id            String      @id @default(uuid())
+  promotionId   String
+  promotion     Promotion   @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  productUnitId String
+  productUnit   ProductUnit @relation(fields: [productUnitId], references: [id], onDelete: Cascade)
+  discountType  String      @default("FIXED") // FIXED, PERCENTAGE
+  discountValue Float
+  createdAt     DateTime    @default(now())
+}
+
+model Bundle {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  bundlePrice Float
+  imageUrl    String?
+  isActive    Boolean      @default(true)
+  items       BundleItem[]
+}
+
+model BundleItem {
+  id            String      @id @default(uuid())
+  bundleId      String
+  bundle        Bundle      @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  productUnitId String
+  productUnit   ProductUnit @relation(fields: [productUnitId], references: [id])
+  quantity      Float       @default(1.0)
+}
+
+model AuditEvent {
+  id           String   @id @default(uuid())
+  actorUserId  String?
+  actor        User?    @relation(fields: [actorUserId], references: [id])
+  action       String   // e.g. "PRICE_CHANGE", "STOCK_ADJUSTMENT", "ORDER_STATUS_UPDATE"
+  resourceType String
+  resourceId   String
+  metadata     String?  // JSON string
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  category      String   // OPERASIONAL, LISTRIK_AIR, GAJI, TRANSPORT, KEMASAN, SEWA, LAINNYA
+  description   String
+  amount        Float
+  expenseDate   DateTime @default(now())
+  paymentMethod String   @default("CASH") // CASH, TRANSFER
+  recordedBy    String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SupplierPurchase {
+  id             String                 @id @default(uuid())
+  purchaseNumber String                 @unique // e.g. "PO-20261004-0001"
+  supplierName   String
+  invoiceNumber  String?
+  totalAmount    Float
+  paymentStatus  String                 @default("PAID") // PAID, UNPAID, PARTIAL
+  paymentMethod  String                 @default("CASH") // CASH, TRANSFER
+  notes          String?
+  purchaseDate   DateTime               @default(now())
+  createdAt      DateTime               @default(now())
+  items          SupplierPurchaseItem[]
+}
+
+model SupplierPurchaseItem {
+  id            String           @id @default(uuid())
+  purchaseId    String
+  purchase      SupplierPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productUnitId String
+  productUnit   ProductUnit      @relation(fields: [productUnitId], references: [id])
+  quantity      Float
+  costPrice     Float
+  subtotal      Float
+}

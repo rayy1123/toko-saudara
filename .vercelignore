@@ -1,0 +1,6 @@
+.git
+.env.local
+.env*.local
+*.db
+*.db-journal
+tests/
