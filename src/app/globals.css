@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --saudara-bg: #fdfbf7;
+    --saudara-card: #ffffff;
+    --saudara-charcoal: #1f2937;
+    --saudara-green-dark: #14532d;
+    --saudara-green-primary: #15803d;
+    --saudara-green-light: #22c55e;
+    --saudara-orange-primary: #ea580c;
+  }
+
+  body {
+    background-color: var(--saudara-bg);
+    color: var(--saudara-charcoal);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer components {
+  .market-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide;
+  }
+
+  .market-card {
+    @apply rounded-2xl bg-white border border-saudara-cream-200 shadow-sm hover:shadow-md transition-all duration-200;
+  }
+
+  .market-btn-primary {
+    @apply bg-saudara-green-700 hover:bg-saudara-green-800 text-white font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+  }
+
+  .market-btn-orange {
+    @apply bg-saudara-orange-600 hover:bg-saudara-orange-700 text-white font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+  }
+
+  .market-btn-outline {
+    @apply border border-saudara-green-700 text-saudara-green-800 hover:bg-saudara-green-50 font-medium px-4 py-2 rounded-xl transition-colors;
+  }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f7f3eb;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
