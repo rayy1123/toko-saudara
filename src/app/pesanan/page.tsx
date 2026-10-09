@@ -56,7 +56,46 @@ export default function PesananIndexPage() {
   useEffect(() => {
     async function loadOrders() {
       try {
-        const res = await fetch("/api/orders");
+        let queryUrl = "";
+
+        if (user?.phone) {
+          queryUrl = `/api/orders?phone=${encodeURIComponent(user.phone)}`;
+        } else {
+          // Check local storage for guest orders
+          let guestOrders: string[] = [];
+          try {
+            const raw = localStorage.getItem("saudara_my_orders");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                guestOrders = parsed.map((item: any) => item.orderNumber).filter(Boolean);
+              }
+            }
+          } catch {}
+
+          let guestPhone = "";
+          try {
+            const profileRaw = localStorage.getItem("saudara_guest_profile");
+            if (profileRaw) {
+              const parsedProfile = JSON.parse(profileRaw);
+              if (parsedProfile.phone) guestPhone = parsedProfile.phone;
+            }
+          } catch {}
+
+          if (guestOrders.length > 0) {
+            queryUrl = `/api/orders?orderNumbers=${encodeURIComponent(guestOrders.slice(0, 20).join(","))}`;
+          } else if (guestPhone) {
+            queryUrl = `/api/orders?phone=${encodeURIComponent(guestPhone)}`;
+          }
+        }
+
+        if (!queryUrl) {
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch(queryUrl);
         if (res.ok) {
           const data = await res.json();
           setOrders(data.orders || []);
@@ -68,7 +107,7 @@ export default function PesananIndexPage() {
       }
     }
     loadOrders();
-  }, []);
+  }, [user]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

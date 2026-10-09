@@ -174,7 +174,6 @@ export default function AdminAuditLogPage() {
               <option value="CREATE_PRODUCT">Input Barang Baru</option>
               <option value="POS_SALE">Penjualan Kasir</option>
             </select>
-            </select>
           </div>
         </div>
       </div>

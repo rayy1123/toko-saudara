@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Auto-provision default staff accounts if not yet created in database
-    if (!user) {
+    // Auto-provision default staff accounts if not yet created in database (Dev/Setup mode)
+    if (!user && process.env.NODE_ENV !== "production") {
       if (cleanEmail === "pemilik@tokosaudara.id") {
         const hash = await hashPassword("PemilikSaudara123!");
         user = await prisma.user.create({

@@ -265,6 +265,10 @@ export async function runSecurityTests() {
   assert.ok(foundPriceLog, "Perubahan harga oleh kasir harus tercatat di log audit pemilik");
 
   // Cleanup test records
+  await prisma.productUnit.update({
+    where: { id: sampleUnit.id },
+    data: { price: sampleUnit.price },
+  });
   await prisma.auditEvent.deleteMany({ where: { actorUserId: cashierUser.id } });
   await prisma.user.delete({ where: { id: cashierUser.id } });
   await prisma.orderItem.deleteMany({ where: { orderId: orderB.id } });

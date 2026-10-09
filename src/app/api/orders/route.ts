@@ -2,9 +2,19 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recordInventoryMovement } from "@/lib/inventory";
 import { ensureAccountingTables } from "@/lib/accounting";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+    const rateLimit = checkRateLimit(`guest_order:${ip}`, 10, 60);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: `Terlalu banyak permintaan pesanan. Mohon tunggu ${rateLimit.resetInSeconds} detik.` },
+        { status: 429 }
+      );
+    }
+
     await ensureAccountingTables();
     const body = await req.json();
     const {
@@ -290,13 +300,23 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const orderNumber = searchParams.get("orderNumber");
-    const phone = searchParams.get("phone");
+    const orderNumber = searchParams.get("orderNumber")?.trim();
+    const orderNumbersRaw = searchParams.get("orderNumbers")?.trim();
+    const phone = searchParams.get("phone")?.trim();
+
+    // Prevent open enumeration of all store orders and customer PII
+    if (!orderNumber && !orderNumbersRaw && !phone) {
+      return NextResponse.json({ orders: [] });
+    }
 
     const where: any = {};
     if (orderNumber) {
       where.orderNumber = orderNumber;
+    } else if (orderNumbersRaw) {
+      const numbersList = orderNumbersRaw.split(",").map((s) => s.trim()).filter(Boolean);
+      where.orderNumber = { in: numbersList };
     }
+
     if (phone) {
       where.OR = [
         { customerPhone: phone },
