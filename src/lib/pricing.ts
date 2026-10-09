@@ -131,7 +131,7 @@ export async function calculateOrderTotals(
           );
         } catch {}
 
-        if (specificItems && specificItems.length > 0) {
+        if (promo.scope === "SPECIFIC_ITEMS" && specificItems && specificItems.length > 0) {
           const itemMap = new Map(specificItems.map((s: any) => [s.productUnitId, s]));
           let totalItemDiscount = 0;
           const breakdowns: any[] = [];

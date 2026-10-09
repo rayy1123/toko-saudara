@@ -32,6 +32,11 @@ export function checkRateLimit(
 
   let record = rateLimitStore.get(key);
   if (!record) {
+    // Memory exhaustion protection: evict oldest keys if map exceeds 5000 entries
+    if (rateLimitStore.size >= 5000) {
+      const firstKey = rateLimitStore.keys().next().value;
+      if (firstKey) rateLimitStore.delete(firstKey);
+    }
     record = { timestamps: [] };
     rateLimitStore.set(key, record);
   }

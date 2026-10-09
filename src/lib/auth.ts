@@ -6,6 +6,11 @@ import { apiError } from "@/lib/response";
 
 const JWT_SECRET_STRING =
   process.env.JWT_SECRET || "toko-saudara-super-secret-key-2026-dari-pasar-ke-rumah";
+
+if (process.env.NODE_ENV === "production" && (!process.env.JWT_SECRET || process.env.JWT_SECRET.includes("super-secret-key"))) {
+  console.warn("⚠️ PERINGATAN KEAMANAN: JWT_SECRET belum diatur dengan kunci acak yang aman di environment produksi!");
+}
+
 const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
 
 export interface JWTPayload {

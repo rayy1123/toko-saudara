@@ -1,0 +1,12 @@
+# GitGuardian configuration file
+# Reference: https://docs.gitguardian.com/ggshield-docs/reference/configuration
+
+version: 2
+
+secret:
+  ignored_paths:
+    - "node_modules/**"
+    - ".next/**"
+    - "tests/**"
+    - "prisma/seed.ts"
+    - "supabase/seed.sql"

@@ -20,6 +20,18 @@ export async function runPricingTests() {
   assert.ok(berasUnit, "Beras unit harus tersedia di database");
   assert.ok(areaSukasari, "Area pengiriman Sukasari harus tersedia di database");
 
+  // Reset standard prices for deterministic execution
+  await prisma.productUnit.update({
+    where: { id: bayamUnit.id },
+    data: { price: 3500 },
+  });
+  await prisma.productUnit.update({
+    where: { id: berasUnit.id },
+    data: { price: 78000 },
+  });
+  bayamUnit.price = 3500;
+  berasUnit.price = 78000;
+
   // 1. Test Server Authoritative Pricing (Client Price Manipulation Ignored)
   console.log("  [TEST] Otoritas harga server (manipulasi harga client diabaikan)");
   const manipulatedInput: any = [
@@ -96,8 +108,15 @@ export async function runPricingTests() {
         value: 15,
         minOrderAmount: 30000,
         maxDiscount: 20000,
+        scope: "ALL",
         isActive: true,
       },
+    });
+  } else {
+    // Ensure scope is ALL for global discount test
+    await prisma.promotion.update({
+      where: { id: langgananPromo.id },
+      data: { scope: "ALL", type: "PERCENTAGE", value: 15, isActive: true },
     });
   }
 
@@ -149,13 +168,15 @@ export async function runPricingTests() {
 
   // 8. Test Promo Potongan Khusus Barang Tertentu yang Ditentukan Admin
   console.log("  [TEST] Promo potongan harga khusus barang tertentu yang ditentukan admin");
+  const testPromoCode = `PROMOBARANG_${Date.now()}`;
   const specificPromo = await prisma.promotion.create({
     data: {
       name: "Promo Khusus Beras & Minyak Langganan",
-      code: "PROMOBARANG",
+      code: testPromoCode,
       type: "FIXED",
       value: 0,
       minOrderAmount: 20000,
+      scope: "SPECIFIC_ITEMS",
       isActive: true,
     },
   });
@@ -177,7 +198,7 @@ export async function runPricingTests() {
       { productUnitId: berasUnit.id, quantity: 2 },
       { productUnitId: bayamUnit.id, quantity: 2 },
     ],
-    "PROMOBARANG",
+    testPromoCode,
     null
   );
 
@@ -189,7 +210,7 @@ export async function runPricingTests() {
   // Case B: Cart only contains Bayam (Barang tidak memenuhi promo)
   const resultSpecificB = await calculateOrderTotals(
     [{ productUnitId: bayamUnit.id, quantity: 10 }], // Subtotal 35.000 >= 20.000
-    "PROMOBARANG",
+    testPromoCode,
     null
   );
   assert.equal(resultSpecificB.discountTotal, 0, "Diskon harus 0 jika barang dalam keranjang tidak masuk daftar barang promo");
