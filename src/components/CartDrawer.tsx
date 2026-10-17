@@ -4,17 +4,12 @@ import React from "react";
 import Link from "next/link";
 import { useStore } from "@/context/StoreContext";
 import { formatRupiah } from "@/lib/utils";
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Truck, Sparkles } from "lucide-react";
+import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Store } from "lucide-react";
 
 export function CartDrawer() {
   const { cart, totalItems, subtotal, updateQuantity, removeFromCart, isCartOpen, setIsCartOpen } = useStore();
 
   if (!isCartOpen) return null;
-
-  const freeShippingThreshold = 60000;
-  const isFreeShipping = subtotal >= freeShippingThreshold;
-  const amountNeeded = Math.max(0, freeShippingThreshold - subtotal);
-  const progressPercent = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -44,30 +39,11 @@ export function CartDrawer() {
             </button>
           </div>
 
-          {/* Free Shipping AOV Booster Meter */}
+          {/* Quick Info: Siap Ambil di Tempat / Diantar */}
           {cart.length > 0 && (
-            <div className="bg-saudara-green-50 p-3.5 border-b border-saudara-green-200 text-xs">
-              <div className="flex items-center justify-between mb-1.5 font-bold text-saudara-green-950">
-                <span className="flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-saudara-green-700" />
-                  {isFreeShipping ? (
-                    <span className="text-saudara-green-800">🎉 Selamat! Anda Dapat GRATIS ONGKIR</span>
-                  ) : (
-                    <span>
-                      Belanja <b>{formatRupiah(amountNeeded)}</b> lagi untuk Gratis Ongkir!
-                    </span>
-                  )}
-                </span>
-                <span className="text-[11px] font-extrabold text-saudara-orange-600">
-                  {progressPercent}%
-                </span>
-              </div>
-              <div className="w-full bg-saudara-cream-200 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-saudara-orange-500 h-full rounded-full transition-all duration-300"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
+            <div className="bg-saudara-green-50 px-4 py-2.5 border-b border-saudara-green-200 text-xs flex items-center gap-2 text-saudara-green-950 font-medium">
+              <Store className="w-4 h-4 text-saudara-green-700 shrink-0" />
+              <span>Belanjaan dikemas rapi, siap diambil di kios pasar atau diantar.</span>
             </div>
           )}
 

@@ -16,6 +16,7 @@ import {
   X,
   ShieldCheck,
   ChevronRight,
+  Store,
 } from "lucide-react";
 
 export default function KeranjangPage() {
@@ -108,29 +109,16 @@ export default function KeranjangPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Cart Items List */}
           <div className="lg:col-span-8 space-y-4">
-            {/* Free Shipping Progress Indicator */}
+            {/* Pickup & Delivery Banner */}
             <div className="bg-saudara-green-50 border border-saudara-green-200 rounded-2xl p-4 flex items-center gap-3">
-              <Truck className="w-6 h-6 text-saudara-green-700 shrink-0" />
+              <Store className="w-6 h-6 text-saudara-green-700 shrink-0" />
               <div className="flex-1 text-xs">
-                {subtotal >= 60000 ? (
-                  <p className="font-bold text-saudara-green-800 flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4 text-saudara-green-600 inline" />
-                    Selamat! Anda mendapatkan <b>GRATIS ONGKIR</b> pengantaran toko.
-                  </p>
-                ) : (
-                  <div>
-                    <p className="text-gray-700">
-                      Tambah belanja <b>{formatRupiah(60000 - subtotal)}</b> lagi untuk mendapatkan{" "}
-                      <b className="text-saudara-green-800">GRATIS ONGKIR</b>!
-                    </p>
-                    <div className="w-full bg-saudara-cream-200 h-2 rounded-full mt-2 overflow-hidden">
-                      <div
-                        className="bg-saudara-green-600 h-full rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min(100, (subtotal / 60000) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
+                <p className="font-bold text-saudara-green-950">
+                  Ambil Sendiri di Kios Toko Saudara (Bebas Biaya / Rp 0)
+                </p>
+                <p className="text-stone-600 mt-0.5">
+                  Belanjaan Anda langsung ditimbang dan dikemas rapi. Tinggal datang dan ambil di Kios Pasar Kramat Jati tanpa antre, atau pilih opsi diantar saat checkout.
+                </p>
               </div>
             </div>
 

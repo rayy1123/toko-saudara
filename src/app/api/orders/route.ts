@@ -127,13 +127,18 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. Shipping fee based on area / free threshold
-    let shippingFee = calculatedSubtotal >= 60000 ? 0 : 8000;
-    const area = await prisma.deliveryArea.findFirst({
-      where: { name: { contains: district } },
-    });
-    if (area && calculatedSubtotal < 60000) {
-      shippingFee = area.shippingFee;
+    // 3. Shipping fee based on service type
+    let shippingFee = 0;
+    if (deliveryMethod === "KURIR_TOKO") {
+      shippingFee = 8000;
+      const area = await prisma.deliveryArea.findFirst({
+        where: { name: { contains: district } },
+      });
+      if (area) {
+        shippingFee = area.shippingFee;
+      }
+    } else {
+      shippingFee = 0; // Ambil Sendiri di Kios Toko = Rp 0
     }
 
     const grandTotal = Math.max(0, calculatedSubtotal - discountTotal + shippingFee);

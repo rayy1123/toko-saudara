@@ -7,6 +7,7 @@ interface SocialProof {
   name: string;
   location: string;
   item: string;
+  actionType: string;
   timeAgo: string;
 }
 
@@ -15,31 +16,36 @@ const SAMPLE_PROOFS: SocialProof[] = [
     name: "Ibu Maya",
     location: "Kramat Jati",
     item: "Beras Pandan Wangi 5kg",
+    actionType: "Ambil di Kios Pasar",
     timeAgo: "2 menit lalu",
   },
   {
     name: "Pak Dimas",
     location: "Kec. Makasar",
-    item: "1kg Telur Ayam & Bayam Hijau",
-    timeAgo: "4 menit lalu",
+    item: "1kg Telur Ayam & Bayam",
+    actionType: "Ambil di Kios Pasar",
+    timeAgo: "5 menit lalu",
   },
   {
     name: "Ibu Rini",
     location: "Pasar Rebo",
-    item: "Cabai Merah Keriting & Bumbu",
-    timeAgo: "7 menit lalu",
+    item: "Cabai Merah & Bumbu Dapur",
+    actionType: "Diantar ke Rumah",
+    timeAgo: "8 menit lalu",
   },
   {
     name: "Ibu Endang",
-    location: "Jatinegara",
+    location: "Kramat Jati",
     item: "Minyak Goreng 2L & Tempe",
-    timeAgo: "11 menit lalu",
+    actionType: "Ambil di Kios Pasar",
+    timeAgo: "12 menit lalu",
   },
   {
     name: "Pak Hendra",
     location: "Ciracas",
-    item: "Paket Sayur Masak & Bawang",
-    timeAgo: "15 menit lalu",
+    item: "Bawang Merah Brebes 1kg",
+    actionType: "Ambil di Kios Pasar",
+    timeAgo: "16 menit lalu",
   },
 ];
 
@@ -97,7 +103,7 @@ export function SocialProofToast() {
             Membeli {currentProof.item}
           </p>
           <p className="text-[10px] text-stone-400 flex items-center gap-1 mt-0.5">
-            <Clock className="w-3 h-3 text-emerald-600" /> {currentProof.timeAgo} • Diantar Toko
+            <Clock className="w-3 h-3 text-emerald-600" /> {currentProof.timeAgo} • {currentProof.actionType}
           </p>
         </div>
 

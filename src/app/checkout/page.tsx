@@ -20,6 +20,7 @@ import {
   Sparkles,
   Info,
   Check,
+  Store,
 } from "lucide-react";
 
 export default function CheckoutPage() {
@@ -30,14 +31,17 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Form Fields — Empty by default (no fake demo values), auto-loads from saved local profile or active user
+  // Method: Ambil Sendiri di Kios vs Diantar Kurir (Default AMBIL_SENDIRI)
+  const [deliveryMethod, setDeliveryMethod] = useState<"AMBIL_SENDIRI" | "KURIR_TOKO">("AMBIL_SENDIRI");
+
+  // Form Fields
   const [recipientName, setRecipientName] = useState(user?.name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [addressLine, setAddressLine] = useState(user?.addressLine || "");
   const [district, setDistrict] = useState(user?.district || "Kramat Jati");
   const [city] = useState("Jakarta Timur");
 
-  // Step 2: Jadwal Pengantaran (Dilakukan Saat Jam Operasional 15:30 - 06:00 WIB)
+  // Step 2: Jadwal Pengambilan / Pengantaran
   const [deliverySlot, setDeliverySlot] = useState<string>("OPERASIONAL_SORE");
   const [deliveryNotes, setDeliveryNotes] = useState("");
 
@@ -62,11 +66,12 @@ export default function CheckoutPage() {
         if (parsed.phone) setPhone(parsed.phone);
         if (parsed.addressLine) setAddressLine(parsed.addressLine);
         if (parsed.district) setDistrict(parsed.district);
+        if (parsed.deliveryMethod) setDeliveryMethod(parsed.deliveryMethod);
       }
     } catch {}
   }, [user]);
 
-  // Shipping Calculation (Area Layanan Kramat Jati Jakarta Timur & Sekitarnya)
+  // Shipping Calculation
   const deliveryAreas: Record<string, number> = {
     "Kramat Jati": 8000,
     "Makasar": 10000,
@@ -75,7 +80,7 @@ export default function CheckoutPage() {
     "Ciracas": 12000,
   };
   const baseShippingFee = deliveryAreas[district] || 8000;
-  const shippingFee = subtotal >= 60000 ? 0 : baseShippingFee;
+  const shippingFee = deliveryMethod === "AMBIL_SENDIRI" ? 0 : baseShippingFee;
   const grandTotal = Math.max(0, subtotal - discountAmount + shippingFee);
 
   // Stepper handlers
@@ -83,14 +88,14 @@ export default function CheckoutPage() {
     setErrorMsg(null);
     if (currentStep === 1) {
       if (!recipientName.trim()) {
-        setErrorMsg("Mohon masukkan Nama Penerima");
+        setErrorMsg("Mohon masukkan Nama Pemesan / Pembeli");
         return;
       }
       if (!phone.trim() || phone.trim().length < 8) {
-        setErrorMsg("Mohon masukkan No. WhatsApp / HP yang aktif untuk konfirmasi pengantaran");
+        setErrorMsg("Mohon masukkan No. WhatsApp / HP yang aktif untuk konfirmasi");
         return;
       }
-      if (!addressLine.trim() || addressLine.trim().length < 5) {
+      if (deliveryMethod === "KURIR_TOKO" && (!addressLine.trim() || addressLine.trim().length < 5)) {
         setErrorMsg("Mohon masukkan Alamat Pengiriman lengkap (nama jalan, no. rumah, RT/RW)");
         return;
       }
@@ -109,13 +114,19 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
     setErrorMsg(null);
 
+    const resolvedAddress =
+      deliveryMethod === "AMBIL_SENDIRI"
+        ? "Ambil Sendiri di Kios Toko Saudara (Pasar Kramat Jati)"
+        : addressLine.trim();
+
     try {
       const payload = {
         recipientName: recipientName.trim(),
         phone: phone.trim(),
-        addressLine: addressLine.trim(),
-        district,
+        addressLine: resolvedAddress,
+        district: deliveryMethod === "AMBIL_SENDIRI" ? "Kramat Jati" : district,
         city,
+        deliveryMethod,
         deliverySlot,
         deliveryNotes: deliveryNotes.trim(),
         paymentMethod,
@@ -143,10 +154,10 @@ export default function CheckoutPage() {
             phone: phone.trim(),
             addressLine: addressLine.trim(),
             district,
+            deliveryMethod,
           })
         );
 
-        // Append to my orders list
         const existing = JSON.parse(localStorage.getItem("saudara_my_orders") || "[]");
         existing.unshift({
           orderNumber: data.order.orderNumber,
@@ -156,7 +167,12 @@ export default function CheckoutPage() {
         localStorage.setItem("saudara_my_orders", JSON.stringify(existing.slice(0, 20)));
       } catch {}
 
-      showToast("Pesanan berhasil dibuat! Struk digital resmi telah diterbitkan.", "success");
+      showToast(
+        deliveryMethod === "AMBIL_SENDIRI"
+          ? "Pesanan disiapkan! Silakan ambil di Kios Toko Saudara Pasar Kramat Jati."
+          : "Pesanan berhasil dibuat! Akan diantar saat jam operasional toko.",
+        "success"
+      );
       clearCart();
 
       // Redirect immediately to E-Receipt!
@@ -263,22 +279,70 @@ export default function CheckoutPage() {
 
       {/* Step Contents */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-saudara-cream-200 shadow-xs space-y-6">
-        {/* STEP 1: Alamat Penerima */}
+        {/* STEP 1: Cara Pengambilan / Alamat */}
         {currentStep === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="flex items-center gap-2.5 pb-3 border-b border-saudara-cream-200">
               <MapPin className="w-5 h-5 text-saudara-green-700" />
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Langkah 1: Identitas & Alamat Pengantaran</h2>
+                <h2 className="text-lg font-bold text-gray-900">Langkah 1: Cara Pengambilan &amp; Identitas Pemesan</h2>
                 <p className="text-xs text-gray-500">
-                  Kurir Toko Saudara akan mengantarkan pesanan langsung ke depan pagar/pintu rumah Anda.
+                  Pilih apakah pesanan akan diambil sendiri di kios pasar atau diantar langsung ke rumah Anda.
                 </p>
+              </div>
+            </div>
+
+            {/* Pilihan Metode: Ambil Sendiri vs Diantar */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-stone-700 block">Pilihan Layanan *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div
+                  onClick={() => setDeliveryMethod("AMBIL_SENDIRI")}
+                  className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+                    deliveryMethod === "AMBIL_SENDIRI"
+                      ? "border-saudara-green-800 bg-saudara-green-50/80 ring-2 ring-saudara-green-600/20 shadow-xs"
+                      : "border-saudara-cream-200 hover:border-saudara-green-300 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-extrabold text-sm text-saudara-green-950 flex items-center gap-1.5">
+                      <Store className="w-4 h-4 text-saudara-green-700" /> Ambil Sendiri di Kios Pasar
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-[10px]">
+                      BEBAS ONGKIR (Rp 0)
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-600 leading-relaxed">
+                    Belanjaan disiapkan &amp; dikemas rapi di Kios Toko Saudara Pasar Kramat Jati. Tinggal datang dan ambil tanpa antre!
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => setDeliveryMethod("KURIR_TOKO")}
+                  className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+                    deliveryMethod === "KURIR_TOKO"
+                      ? "border-saudara-green-800 bg-saudara-green-50/80 ring-2 ring-saudara-green-600/20 shadow-xs"
+                      : "border-saudara-cream-200 hover:border-saudara-green-300 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-extrabold text-sm text-stone-900 flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-saudara-orange-600" /> Diantar ke Rumah
+                    </span>
+                    <span className="text-xs text-stone-500 font-bold">
+                      Ongkir {formatRupiah(baseShippingFee)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-600 leading-relaxed">
+                    Kurir toko mengantar pesanan langsung ke depan pagar/pintu rumah Anda saat jam operasional toko (15:30 - 06:00 WIB).
+                  </p>
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700">Nama Lengkap Penerima *</label>
+                <label className="text-xs font-bold text-gray-700">Nama Lengkap Pemesan *</label>
                 <input
                   type="text"
                   value={recipientName}
@@ -299,48 +363,63 @@ export default function CheckoutPage() {
                   className="w-full px-4 py-2.5 rounded-xl border border-saudara-cream-200 focus:border-saudara-green-600 text-sm focus:outline-hidden"
                   required
                 />
-                <p className="text-[11px] text-gray-400">Untuk menerima struk belanja digital & kabar kurir jalan.</p>
+                <p className="text-[11px] text-gray-400">Untuk menerima struk belanja digital &amp; info saat barang siap diambil.</p>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-700">Alamat Lengkap Rumah *</label>
-              <textarea
-                value={addressLine}
-                onChange={(e) => setAddressLine(e.target.value)}
-                placeholder="Nama jalan, nomor rumah, RT/RW, gang, atau patokan rumah (misal: pagar hitam depan pos satpam)"
-                rows={3}
-                className="w-full px-4 py-2.5 rounded-xl border border-saudara-cream-200 focus:border-saudara-green-600 text-sm focus:outline-hidden"
-                required
-              />
-            </div>
+            {/* Alamat Input (Hanya jika Diantar ke Rumah) */}
+            {deliveryMethod === "KURIR_TOKO" ? (
+              <>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700">Alamat Lengkap Rumah *</label>
+                  <textarea
+                    value={addressLine}
+                    onChange={(e) => setAddressLine(e.target.value)}
+                    placeholder="Nama jalan, nomor rumah, RT/RW, gang, atau patokan rumah (misal: pagar hitam depan pos satpam)"
+                    rows={3}
+                    className="w-full px-4 py-2.5 rounded-xl border border-saudara-cream-200 focus:border-saudara-green-600 text-sm focus:outline-hidden"
+                    required
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700">Kecamatan Pengiriman (Jakarta Timur) *</label>
-                <select
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-saudara-cream-200 focus:border-saudara-green-600 text-sm focus:outline-hidden bg-white"
-                >
-                  <option value="Kramat Jati">Kec. Kramat Jati (Ongkir Rp 8.000)</option>
-                  <option value="Makasar">Kec. Makasar (Ongkir Rp 10.000)</option>
-                  <option value="Pasar Rebo">Kec. Pasar Rebo (Ongkir Rp 10.000)</option>
-                  <option value="Jatinegara">Kec. Jatinegara (Ongkir Rp 12.000)</option>
-                  <option value="Ciracas">Kec. Ciracas (Ongkir Rp 12.000)</option>
-                </select>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-700">Kecamatan Pengiriman (Jakarta Timur) *</label>
+                    <select
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-saudara-cream-200 focus:border-saudara-green-600 text-sm focus:outline-hidden bg-white"
+                    >
+                      <option value="Kramat Jati">Kec. Kramat Jati (Ongkir Rp 8.000)</option>
+                      <option value="Makasar">Kec. Makasar (Ongkir Rp 10.000)</option>
+                      <option value="Pasar Rebo">Kec. Pasar Rebo (Ongkir Rp 10.000)</option>
+                      <option value="Jatinegara">Kec. Jatinegara (Ongkir Rp 12.000)</option>
+                      <option value="Ciracas">Kec. Ciracas (Ongkir Rp 12.000)</option>
+                    </select>
+                  </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700">Kota</label>
-                <input
-                  type="text"
-                  value={city}
-                  disabled
-                  className="w-full px-4 py-2.5 rounded-xl border border-saudara-cream-200 bg-saudara-cream-50 text-gray-600 text-sm"
-                />
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-700">Kota</label>
+                    <input
+                      type="text"
+                      value={city}
+                      disabled
+                      className="w-full px-4 py-2.5 rounded-xl border border-saudara-cream-200 bg-saudara-cream-50 text-gray-600 text-sm"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 flex items-start gap-2.5">
+                <Store className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-stone-900 block">Lokasi Pengambilan Belanjaan:</span>
+                  <span className="block mt-0.5">
+                    Kios Toko Saudara, Pasar Kramat Jati, Jakarta Timur. Buka pukul 15:30 WIB s/d 06:00 WIB.
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="pt-2 flex justify-end">
               <button
@@ -559,16 +638,31 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-saudara-cream-50 p-4 rounded-2xl border border-saudara-cream-200 space-y-2 text-xs">
                 <div className="font-extrabold text-saudara-green-900 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-saudara-green-700" />
-                  Alamat Pengantaran
+                  {deliveryMethod === "AMBIL_SENDIRI" ? (
+                    <>
+                      <Store className="w-4 h-4 text-saudara-green-700" />
+                      Pengambilan di Kios Pasar
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="w-4 h-4 text-saudara-green-700" />
+                      Alamat Pengantaran
+                    </>
+                  )}
                 </div>
                 <div className="font-bold text-gray-900">{recipientName} ({phone})</div>
                 <div className="text-gray-600 leading-relaxed">
-                  {addressLine}, Kec. {district}, {city}
+                  {deliveryMethod === "AMBIL_SENDIRI" ? (
+                    <span className="text-emerald-800 font-semibold">
+                      Ambil Sendiri di Kios Toko Saudara, Pasar Kramat Jati, Jakarta Timur
+                    </span>
+                  ) : (
+                    `${addressLine}, Kec. ${district}, ${city}`
+                  )}
                 </div>
                 {deliveryNotes && (
                   <div className="text-saudara-orange-700 bg-saudara-orange-50 p-2 rounded-lg border border-saudara-orange-200 font-medium">
-                    Catatan kurir: &quot;{deliveryNotes}&quot;
+                    Catatan: &quot;{deliveryNotes}&quot;
                   </div>
                 )}
               </div>
@@ -576,18 +670,24 @@ export default function CheckoutPage() {
               <div className="bg-saudara-cream-50 p-4 rounded-2xl border border-saudara-cream-200 space-y-2 text-xs">
                 <div className="font-extrabold text-saudara-green-900 flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-saudara-green-700" />
-                  Jadwal & Pembayaran
+                  Jadwal &amp; Pembayaran
                 </div>
                 <div className="text-gray-700">
-                  <span className="text-gray-500">Waktu Antar:</span>{" "}
+                  <span className="text-gray-500">Jam Operasional:</span>{" "}
                   <span className="font-bold text-saudara-green-900">
-                    Pengantaran Jam Operasional (15:30 - 06:00 WIB)
+                    15:30 WIB - 06:00 WIB
+                  </span>
+                </div>
+                <div className="text-gray-700">
+                  <span className="text-gray-500">Layanan:</span>{" "}
+                  <span className="font-bold text-emerald-800">
+                    {deliveryMethod === "AMBIL_SENDIRI" ? "Ambil Sendiri di Kios (Bebas Ongkir)" : "Diantar Kurir ke Rumah"}
                   </span>
                 </div>
                 <div className="text-gray-700">
                   <span className="text-gray-500">Pembayaran:</span>{" "}
                   <span className="font-bold text-saudara-orange-700">
-                    {paymentMethod === "COD" ? "Bayar di Tempat (COD Tunai)" : "Transfer Bank / QRIS"}
+                    {paymentMethod === "COD" ? "Bayar saat Ambil / COD (Tunai)" : "Transfer Bank / QRIS"}
                   </span>
                 </div>
               </div>
@@ -645,10 +745,10 @@ export default function CheckoutPage() {
                 </div>
               )}
               <div className="flex justify-between text-gray-600">
-                <span>Ongkos Kirim Pasar ({district})</span>
+                <span>Biaya Pengantaran</span>
                 <span className="font-medium text-gray-900">
-                  {shippingFee === 0 ? (
-                    <span className="text-saudara-green-700 font-bold">GRATIS</span>
+                  {deliveryMethod === "AMBIL_SENDIRI" ? (
+                    <span className="text-saudara-green-800 font-bold">Rp 0 (Ambil di Kios)</span>
                   ) : (
                     formatRupiah(shippingFee)
                   )}
