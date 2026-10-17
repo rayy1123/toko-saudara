@@ -115,7 +115,7 @@ export default function KeranjangPage() {
                 {subtotal >= 60000 ? (
                   <p className="font-bold text-saudara-green-800 flex items-center gap-1">
                     <CheckCircle className="w-4 h-4 text-saudara-green-600 inline" />
-                    Selamat! Anda mendapatkan <b>GRATIS ONGKIR</b> pengantaran subuh.
+                    Selamat! Anda mendapatkan <b>GRATIS ONGKIR</b> pengantaran toko.
                   </p>
                 ) : (
                   <div>

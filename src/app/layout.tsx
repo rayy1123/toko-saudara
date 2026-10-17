@@ -5,11 +5,12 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
 import { ToastContainer } from "@/components/ToastContainer";
+import { SocialProofToast } from "@/components/SocialProofToast";
 
 export const metadata: Metadata = {
   title: "Toko Saudara — Dari Pasar Ke Rumah",
   description:
-    "Belanja sayur mayur, bumbu dapur, buah, dan sembako kualitas pasar tradisional diantar langsung ke rumah Anda. Kios Toko Saudara Pasar Kramat Jati Jakarta Timur. Timbangan pas & jujur.",
+    "Belanja sayur mayur, bumbu dapur, buah, dan sembako kualitas pasar tradisional diantar langsung ke rumah Anda. Kios Toko Saudara Pasar Kramat Jati Jakarta Timur. Buka 15:30 - 06:00 WIB. Timbangan pas & jujur.",
   keywords: [
     "toko saudara",
     "sayur kramat jati",
@@ -17,7 +18,30 @@ export const metadata: Metadata = {
     "sembako jakarta timur",
     "bumbu dapur",
     "dari pasar ke rumah",
+    "pasar induk kramat jati",
   ],
+  openGraph: {
+    title: "Toko Saudara — Dari Pasar Ke Rumah",
+    description: "Belanja sayur & sembako segar Pasar Kramat Jati Jakarta Timur diantar langsung ke rumah (15:30 - 06:00 WIB).",
+    url: "https://tokosaudara.id",
+    siteName: "Toko Saudara",
+    images: [
+      {
+        url: "/logo.png",
+        width: 800,
+        height: 800,
+        alt: "Toko Saudara - Pasar Kramat Jati",
+      },
+    ],
+    locale: "id_ID",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Toko Saudara — Dari Pasar Ke Rumah",
+    description: "Kios Toko Saudara Pasar Kramat Jati Jakarta Timur. Buka 15:30 - 06:00 WIB.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({
@@ -34,6 +58,7 @@ export default function RootLayout({
           <Footer />
           <CartDrawer />
           <ToastContainer />
+          <SocialProofToast />
         </StoreProvider>
       </body>
     </html>
